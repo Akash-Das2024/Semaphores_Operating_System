@@ -3,10 +3,10 @@
 #include <semaphore.h>
 #include <bits/stdc++.h>
 #include <time.h>
-#define MIN_SLEEP 10
-#define MAX_SLEEP 20
-#define MIN_STAY 10
-#define MAX_STAY 30
+#define MIN_SLEEP 4
+#define MAX_SLEEP 6
+#define MIN_STAY 5
+#define MAX_STAY 10
 using namespace std;
 
 typedef struct Room
@@ -30,6 +30,7 @@ typedef struct Room
 
 vector<int> staff_id;
 pthread_mutex_t std_lock;
+pthread_mutex_t contention_lock;
 sem_t vec_sem;
 vector<int> rooms_to_be_cleaned;
 int num_cleaners, num_guests, num_rooms;
@@ -58,6 +59,7 @@ void remove_guest(int indx)
     pthread_kill(guest_threads[rooms[indx].guest_id - 1], SIGQUIT);
     rooms[indx].guest_id = 0;
     rooms[indx].guest_priority = 0;
+    // cout << "flag" << endl;
 }
 
 int lowest_priority_guest()
@@ -89,8 +91,10 @@ void *staff_thread(void *arg)
         for (int i = 0; i < num_rooms; i++)
         {
             rooms_to_be_cleaned[i] = i;
+            pthread_mutex_lock(&contention_lock);
             if (rooms[i].guest_id != 0)
                 remove_guest(i);
+            pthread_mutex_unlock(&contention_lock);
         }
         sem_post(&vec_sem);
 
@@ -99,12 +103,9 @@ void *staff_thread(void *arg)
         {
             sem_wait(&vec_sem);
             int idx;
-            if(rooms_to_be_cleaned.size() == 0)
+            if (rooms_to_be_cleaned.size() == 0)
             {
                 sem_post(&vec_sem);
-                pthread_mutex_lock(&std_lock);
-                // cout << "yay!" << endl;
-                pthread_mutex_unlock(&std_lock);
                 break;
             }
             if (rooms_to_be_cleaned.size() > 1)

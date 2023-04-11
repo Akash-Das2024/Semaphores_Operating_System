@@ -19,6 +19,7 @@ int main()
     cin >> num_rooms;
 
     pthread_mutex_init(&std_lock, NULL); // std mutex
+    pthread_mutex_init(&contention_lock, NULL);
     guest_threads.resize(num_guests); // guest
     cleaning_threads.resize(num_cleaners); // staff
 
